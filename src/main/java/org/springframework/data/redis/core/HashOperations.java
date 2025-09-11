@@ -38,6 +38,7 @@ import org.springframework.data.redis.core.types.Expirations;
  * @author Christoph Strobl
  * @author Ninad Divadkar
  * @author Tihomir Mateev
+ * @author Nabil Fawwaz Elqayyim
  */
 @NullUnmarked
 public interface HashOperations<H, HK, HV> {
@@ -78,6 +79,53 @@ public interface HashOperations<H, HK, HV> {
 	 * @return {@literal null} when used in pipeline / transaction.
 	 */
 	List<HV> multiGet(@NonNull H key, @NonNull Collection<@NonNull HK> hashKeys);
+
+    /**
+     * Atomically get and delete the value for {@code hashKey} from hash at {@code key}.
+     *
+     * @param key must not be {@literal null}.
+     * @param hashKey must not be {@literal null}.
+     * @return the value, or {@literal null} if the field does not exist.
+     * @see <a href="https://redis.io/docs/latest/commands/hgetdel/">Redis Documentation: HGETDEL</a>
+     * @since Redis 8
+     */
+    HV getAndDelete(@NonNull H key, @NonNull HK hashKey);
+
+    /**
+     * Atomically get and delete multiple values from hash at {@code key}.
+     *
+     * @param key must not be {@literal null}.
+     * @param hashKeys must not be {@literal null}.
+     * @return list of values (may contain {@code null} for non-existing fields).
+     * @see <a href="https://redis.io/docs/latest/commands/hgetdel/">Redis Documentation: HGETDEL</a>
+     * @since Redis 8
+     */
+    List<HV> multiGetAndDelete(@NonNull H key, @NonNull Collection<@NonNull HK> hashKeys);
+
+    /**
+     * Get the value of a hash {@code hashKey} and set the expiration time for {@code key} in seconds.
+     *
+     * @param key must not be {@literal null}.
+     * @param hashKey must not be {@literal null}.
+     * @param ttl time to live in seconds; use {@code 0} to not update expiration.
+     * @return the value of the field, or {@literal null} if the field does not exist or when used in pipeline / transaction.
+     * @see <a href="https://redis.io/commands/hgetex/">Redis Documentation: HGETEX</a>
+     * @since Redis 8
+     */
+    HV getAndExpire(@NonNull H key, @NonNull HK hashKey, long ttl);
+
+    /**
+     * Get the values of multiple hash {@code hashKeys} and set the expiration time for {@code key} in seconds.
+     *
+     * @param key must not be {@literal null}.
+     * @param ttl time to live in seconds; use {@code 0} to not update expiration.
+     * @param hashKeys must not be {@literal null}.
+     * @return a list of values corresponding to the requested fields; missing fields are {@literal null}.
+     *         Returns {@literal null} when used in pipeline / transaction.
+     * @see <a href="https://redis.io/commands/hgetex/">Redis Documentation: HGETEX</a>
+     * @since Redis 8
+     */
+    List<HV> multiGetAndExpire(@NonNull H key, long ttl, @NonNull Collection<@NonNull HK> hashKeys);
 
 	/**
 	 * Increment {@code value} of a hash {@code hashKey} by the given {@code delta}.
@@ -188,7 +236,41 @@ public interface HashOperations<H, HK, HV> {
 	 */
 	void put(@NonNull H key, @NonNull HK hashKey, HV value);
 
-	/**
+    /**
+     * Set the {@code value} of a hash {@code hashKey} and associate a time-to-live (TTL) with the field.
+     *
+     * <p>If {@code ttl} is greater than zero, the field will expire after the specified duration.
+     * A non-positive {@code ttl} value means the field will be set without an expiration.</p>
+     *
+     * @param key must not be {@literal null}.
+     * @param hashKey must not be {@literal null}.
+     * @param value the value to set, may be {@literal null}.
+     * @param ttl the time-to-live duration; must not be negative.
+     * @param timeUnit the unit for the TTL; must not be {@literal null}.
+     * @throws IllegalArgumentException if {@code ttlUnit} is {@literal null}.
+     * @since Redis 8
+     * @see <a href="https://redis.io/commands/hsetex/">Redis Documentation: HSETEX</a>
+     */
+    void put(@NonNull H key, @NonNull HK hashKey, HV value, long ttl, @NonNull TimeUnit timeUnit);
+
+    /**
+     * Set multiple hash fields to multiple values using data provided in {@code m} and associate a time-to-live (TTL)
+     * with the fields.
+     *
+     * <p>If {@code ttl} is greater than zero, the fields will expire after the specified duration.
+     * A non-positive {@code ttl} value means the fields will be set without an expiration.</p>
+     *
+     * @param key must not be {@literal null}.
+     * @param m must not be {@literal null}.
+     * @param ttl the time-to-live duration; must not be negative.
+     * @param timeUnit the unit for the TTL; must not be {@literal null}.
+     * @throws IllegalArgumentException if {@code ttl} is negative or {@code timeUnit} is {@literal null}.
+     * @since Redis 8
+     * @see <a href="https://redis.io/commands/hsetex/">Redis Documentation: HSETEX</a>
+     */
+    void put(@NonNull H key, @NonNull Map<? extends @NonNull HK, ? extends HV> m, long ttl, @NonNull TimeUnit timeUnit);
+
+    /**
 	 * Set the {@code value} of a hash {@code hashKey} only if {@code hashKey} does not exist.
 	 *
 	 * @param key must not be {@literal null}.

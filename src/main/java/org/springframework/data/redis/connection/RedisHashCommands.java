@@ -34,6 +34,7 @@ import org.springframework.util.ObjectUtils;
  * @author Christoph Strobl
  * @author Mark Paluch
  * @author Tihomir Mateev
+ * @author Nabil Fawwaz Elqayyim
  * @see RedisCommands
  */
 @NullUnmarked
@@ -61,6 +62,31 @@ public interface RedisHashCommands {
 	 */
 	Boolean hSetNX(byte @NonNull [] key, byte @NonNull [] field, byte @NonNull [] value);
 
+    /**
+     * Set the {@code value} of a hash {@code field} and set the expiration time for {@code key} in seconds.
+     *
+     * @param key must not be {@literal null}.
+     * @param field must not be {@literal null}.
+     * @param value must not be {@literal null}.
+     * @param seconds time to live in seconds.
+     * @return {@code 1} if the field was set, {@code 0} otherwise.
+     * @see <a href="https://redis.io/commands/hsetex/">Redis Documentation: HSETEX</a>
+     * @since 3.x
+     */
+    Long hSetEx(byte @NonNull [] key, byte @NonNull [] field, byte @NonNull [] value, long seconds);
+
+    /**
+     * Set multiple hash {@code fields} to multiple {@code values} and set the expiration time for {@code key} in seconds.
+     *
+     * @param key must not be {@literal null}.
+     * @param map must not be {@literal null}.
+     * @param seconds time to live in seconds.
+     * @return {@code 1} if all fields were set, {@code 0} otherwise.
+     * @see <a href="https://redis.io/commands/hsetex/">Redis Documentation: HSETEX</a>
+     * @since 3.x
+     */
+    Long hSetEx(byte @NonNull [] key, Map<byte[], byte[]> map, long seconds);
+
 	/**
 	 * Get value for given {@code field} from hash at {@code key}.
 	 *
@@ -70,6 +96,56 @@ public interface RedisHashCommands {
 	 * @see <a href="https://redis.io/commands/hget">Redis Documentation: HGET</a>
 	 */
 	byte[] hGet(byte @NonNull [] key, byte @NonNull [] field);
+
+    /**
+     * Get the value of a hash {@code field} and set the expiration time for {@code key} in seconds.
+     *
+     * @param key must not be {@literal null}.
+     * @param field must not be {@literal null}.
+     * @param seconds time to live in seconds; use {@code 0} to not update expiration.
+     * @return the value of the field, or {@literal null} if the field does not exist or when used in pipeline/transaction.
+     * @see <a href="https://redis.io/commands/hgetex/">Redis Documentation: HGETEX</a>
+     * @since 3.x
+     */
+    byte[] hGetEx(byte @NonNull [] key, byte @NonNull [] field, long seconds);
+
+    /**
+     * Get the values of multiple hash {@code fields} and set the expiration time for {@code key} in seconds.
+     *
+     * @param key must not be {@literal null}.
+     * @param seconds time to live in seconds; use {@code 0} to not update expiration.
+     * @param fields must not be {@literal null}.
+     * @return a list of values corresponding to the requested fields; missing fields are {@literal null}.
+     * @see <a href="https://redis.io/commands/hgetex/">Redis Documentation: HGETEX</a>
+     * @since 3.x
+     */
+    List<byte[]> hGetEx(byte @NonNull [] key, long seconds, byte @NonNull [] @NonNull... fields);
+
+    /**
+     * Get and delete a value for given {@code field} from hash at {@code key}.
+     *
+     * @param key must not be {@literal null}.
+     * @param field must not be {@literal null}.
+     * @return value of the field before deletion or {@literal null} if the field did not exist;
+     *         {@literal null} when used in pipeline / transaction.
+     * @see <a href="https://redis.io/docs/latest/commands/hgetdel/">Redis Documentation: HGETDEL</a>
+     * @since 3.x
+     */
+    byte[] hGetDel(byte @NonNull [] key, byte @NonNull [] field);
+
+    /**
+     * Get and delete values for given {@code fields} from hash at {@code key}.
+     * Values are in the order of the requested keys. Absent field values are represented using
+     * {@literal null} in the resulting {@link List}.
+     *
+     * @param key must not be {@literal null}.
+     * @param fields must not be {@literal empty}.
+     * @return list of values before deletion (some may be {@literal null});
+     *         {@literal null} when used in pipeline / transaction.
+     * @see <a href="https://redis.io/docs/latest/commands/hgetdel/">Redis Documentation: HGETDEL</a>
+     * @since 3.x
+     */
+    List<byte[]> hGetDel(byte @NonNull [] key, byte @NonNull [] @NonNull... fields);
 
 	/**
 	 * Get values for given {@code fields} from hash at {@code key}. Values are in the order of the requested keys Absent

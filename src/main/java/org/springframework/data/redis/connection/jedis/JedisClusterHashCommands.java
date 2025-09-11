@@ -15,7 +15,10 @@
  */
 package org.springframework.data.redis.connection.jedis;
 
+import org.jspecify.annotations.NonNull;
 import redis.clients.jedis.args.ExpiryOption;
+import redis.clients.jedis.params.HGetExParams;
+import redis.clients.jedis.params.HSetExParams;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 
@@ -25,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataAccessException;
@@ -43,6 +47,7 @@ import org.springframework.util.Assert;
  * @author Mark Paluch
  * @author John Blum
  * @author Tihomir Mateev
+ * @author Nabil Fawwaz Elqayyim
  * @since 2.0
  */
 class JedisClusterHashCommands implements RedisHashCommands {
@@ -81,6 +86,44 @@ class JedisClusterHashCommands implements RedisHashCommands {
 		}
 	}
 
+    @Override
+    public Long hSetEx(byte[] key, byte[] field, byte[] value, long seconds) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(field, "Field must not be null");
+        Assert.notNull(value, "Value must not be null");
+
+        try {
+            String sKey = JedisConverters.toString(key);
+            String sField = JedisConverters.toString(field);
+            String sValue = JedisConverters.toString(value);
+            HSetExParams params = HSetExParams.hSetExParams().ex(seconds);
+            return connection.getCluster().hsetex(sKey, params, sField, sValue);
+        } catch (Exception ex) {
+            throw convertJedisAccessException(ex);
+        }
+    }
+
+    @Override
+    public Long hSetEx(byte @NonNull [] key, Map<byte[], byte[]> map, long seconds) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(map, "Map must not be null");
+
+        try {
+            String sKey = JedisConverters.toString(key);
+            Map<String, String> stringMap = map.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> JedisConverters.toString(e.getKey()),
+                            e -> JedisConverters.toString(e.getValue())
+                    ));
+            HSetExParams params = HSetExParams.hSetExParams().ex(seconds);
+            return connection.getCluster().hsetex(sKey, params, stringMap);
+        } catch (Exception ex) {
+            throw convertJedisAccessException(ex);
+        }
+    }
+
 	@Override
 	public byte[] hGet(byte[] key, byte[] field) {
 
@@ -93,6 +136,64 @@ class JedisClusterHashCommands implements RedisHashCommands {
 			throw convertJedisAccessException(ex);
 		}
 	}
+
+    @Override
+    public byte[] hGetEx(byte[] key, byte[] field, long seconds) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(field, "Field must not be null");
+
+        try {
+            String sKey = JedisConverters.toString(key);
+            String sField = JedisConverters.toString(field);
+            HGetExParams params = HGetExParams.hGetExParams().ex(seconds);
+            List<String> values = connection.getCluster().hgetex(sKey, params, sField);
+            return values.isEmpty() ? null : JedisConverters.toBytes(values.get(0));
+        } catch (Exception ex) {
+            throw convertJedisAccessException(ex);
+        }
+    }
+
+    @Override
+    public List<byte[]> hGetEx(byte[] key, long seconds, byte[]... fields) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(fields, "Fields must not be null");
+
+        try {
+            HGetExParams params = HGetExParams.hGetExParams().ex(seconds);
+            return connection.getCluster().hgetex(key, params, fields);
+        } catch (Exception ex) {
+            throw convertJedisAccessException(ex);
+        }
+    }
+
+    @Override
+    public byte[] hGetDel(byte[] key, byte[] field) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(field, "Field must not be null");
+
+        try {
+            List<byte[]> values = connection.getCluster().hgetdel(key, field);
+            return values.isEmpty() ? null : values.get(0);
+        } catch (Exception ex) {
+            throw convertJedisAccessException(ex);
+        }
+    }
+
+    @Override
+    public List<byte[]> hGetDel(byte[] key, byte[]... fields) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(fields, "Fields must not be null");
+
+        try {
+            return connection.getCluster().hgetdel(key, fields);
+        } catch (Exception ex) {
+            throw convertJedisAccessException(ex);
+        }
+    }
 
 	@Override
 	public List<byte[]> hMGet(byte[] key, byte[]... fields) {

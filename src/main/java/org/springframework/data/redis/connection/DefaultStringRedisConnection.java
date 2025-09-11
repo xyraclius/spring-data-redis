@@ -82,6 +82,7 @@ import org.springframework.util.ObjectUtils;
  * @author Dennis Neufeld
  * @author Shyngys Sapraliyev
  * @author Jeonggyu Choi
+ * @author Nabil Fawwaz Elqayyim
  */
 @NullUnmarked
 @SuppressWarnings({ "ConstantConditions", "deprecation" })
@@ -458,6 +459,26 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return convertAndReturn(delegate.hGet(key, field), Converters.identityConverter());
 	}
 
+    @Override
+    public byte[] hGetEx(byte[] key, byte[] field, long seconds) {
+        return convertAndReturn(delegate.hGetEx(key, field, seconds), Converters.identityConverter());
+    }
+
+    @Override
+    public List<byte[]> hGetEx(byte[] key, long seconds, byte[]... fields) {
+        return convertAndReturn(delegate.hGetEx(key, seconds, fields), Converters.identityConverter());
+    }
+
+    @Override
+    public byte[] hGetDel(byte[] key, byte[] field) {
+        return convertAndReturn(delegate.hGetDel(key, field), Converters.identityConverter());
+    }
+
+    @Override
+    public List<byte[]> hGetDel(byte[] key, byte[] ... fields) {
+        return convertAndReturn(delegate.hGetDel(key, fields), Converters.identityConverter());
+    }
+
 	@Override
 	public Map<byte[], byte[]> hGetAll(byte[] key) {
 		return convertAndReturn(delegate.hGetAll(key), Converters.identityConverter());
@@ -502,6 +523,11 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	public Boolean hSetNX(byte[] key, byte[] field, byte[] value) {
 		return convertAndReturn(delegate.hSetNX(key, field, value), Converters.identityConverter());
 	}
+
+    @Override
+    public Long hSetEx(byte[] key, byte[] field, byte[] value, long seconds) {
+        return convertAndReturn(delegate.hSetEx(key, field, value, seconds), Converters.identityConverter());
+    }
 
 	@Override
 	public List<byte[]> hVals(byte[] key) {

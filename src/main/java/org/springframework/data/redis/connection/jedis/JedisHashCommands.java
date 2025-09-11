@@ -18,6 +18,8 @@ package org.springframework.data.redis.connection.jedis;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.args.ExpiryOption;
 import redis.clients.jedis.commands.PipelineBinaryCommands;
+import redis.clients.jedis.params.HGetExParams;
+import redis.clients.jedis.params.HSetExParams;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 
@@ -49,6 +51,7 @@ import org.springframework.util.Assert;
  * @author Mark Paluch
  * @author John Blum
  * @author Tihomir Mateev
+ * @author Nabil Fawwaz Elqayyim
  * @since 2.0
  */
 @NullUnmarked
@@ -82,6 +85,26 @@ class JedisHashCommands implements RedisHashCommands {
 				.get(JedisConverters.longToBoolean());
 	}
 
+    @Override
+    public Long hSetEx(byte @NonNull [] key, byte @NonNull [] field, byte @NonNull [] value, long seconds) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(field, "Field must not be null");
+
+        HSetExParams params = HSetExParams.hSetExParams().ex(seconds);
+        return connection.invoke().just(Jedis::hsetex, PipelineBinaryCommands::hsetex, key, params, field, value);
+    }
+
+    @Override
+    public Long hSetEx(byte @NonNull [] key, Map<byte[], byte[]> map, long seconds) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(map, "Map must not be null");
+
+        HSetExParams params = HSetExParams.hSetExParams().ex(seconds);
+        return connection.invoke().just(Jedis::hsetex, PipelineBinaryCommands::hsetex, key, params, map);
+    }
+
 	@Override
 	public Long hDel(byte @NonNull [] key, byte @NonNull [] @NonNull... fields) {
 
@@ -108,6 +131,48 @@ class JedisHashCommands implements RedisHashCommands {
 
 		return connection.invoke().just(Jedis::hget, PipelineBinaryCommands::hget, key, field);
 	}
+
+    @Override
+    public byte[] hGetEx(byte @NonNull [] key, byte @NonNull [] field, long seconds) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(field, "Field must not be null");
+
+        HGetExParams params = HGetExParams.hGetExParams().ex(seconds);
+        return connection.invoke()
+                .from(Jedis::hgetex, PipelineBinaryCommands::hgetex, key, params, new byte[][]{field})
+                .get(list -> (!list.isEmpty() ? list.get(0) : null));
+    }
+
+    @Override
+    public List<byte[]> hGetEx(byte @NonNull [] key, long seconds, byte @NonNull [] @NonNull ... fields) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(fields, "Fields must not be null");
+
+        HGetExParams params = HGetExParams.hGetExParams().ex(seconds);
+        return connection.invoke().just(Jedis::hgetex, PipelineBinaryCommands::hgetex, key, params, fields);
+    }
+
+    @Override
+    public byte[] hGetDel(byte @NonNull [] key, byte @NonNull [] field) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(field, "Field must not be null");
+
+        return connection.invoke()
+                .from(Jedis::hgetdel, PipelineBinaryCommands::hgetdel, key, new byte[][]{field})
+                .get(list -> (!list.isEmpty() ? list.get(0) : null));
+    }
+
+    @Override
+    public List<byte[]> hGetDel(byte @NonNull [] key, byte @NonNull [] @NonNull... fields) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notEmpty(fields, "Fields must not be empty");
+
+        return connection.invoke().just(Jedis::hgetdel, PipelineBinaryCommands::hgetdel, key, fields);
+    }
 
 	@Override
 	public Map<byte @NonNull [], byte @NonNull []> hGetAll(byte @NonNull [] key) {

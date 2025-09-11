@@ -103,6 +103,7 @@ import org.springframework.util.ObjectUtils;
  * @author Tamil Selvan
  * @author ihaohong
  * @author John Blum
+ * @author Nabil Fawwaz Elqayyim
  */
 @NullUnmarked
 public class LettuceConnection extends AbstractRedisConnection {
@@ -1162,6 +1163,7 @@ public class LettuceConnection extends AbstractRedisConnection {
 			COMMAND_OUTPUT_TYPE_MAPPING.put(PFCOUNT, IntegerOutput.class);
 			COMMAND_OUTPUT_TYPE_MAPPING.put(PFMERGE, IntegerOutput.class);
 			COMMAND_OUTPUT_TYPE_MAPPING.put(PFADD, IntegerOutput.class);
+			COMMAND_OUTPUT_TYPE_MAPPING.put(HSETEX, IntegerOutput.class);
 
 			COMMAND_OUTPUT_TYPE_MAPPING.put(HEXPIRE, IntegerListOutput.class);
 			COMMAND_OUTPUT_TYPE_MAPPING.put(HEXPIREAT, IntegerListOutput.class);
@@ -1243,6 +1245,8 @@ public class LettuceConnection extends AbstractRedisConnection {
 			COMMAND_OUTPUT_TYPE_MAPPING.put(ZRANGEBYSCORE, ValueListOutput.class);
 			COMMAND_OUTPUT_TYPE_MAPPING.put(ZREVRANGE, ValueListOutput.class);
 			COMMAND_OUTPUT_TYPE_MAPPING.put(ZREVRANGEBYSCORE, ValueListOutput.class);
+            COMMAND_OUTPUT_TYPE_MAPPING.put(HGETDEL, ValueListOutput.class);
+            COMMAND_OUTPUT_TYPE_MAPPING.put(HGETEX, ValueListOutput.class);
 
 			// BOOLEAN
 			COMMAND_OUTPUT_TYPE_MAPPING.put(EXISTS, BooleanOutput.class);

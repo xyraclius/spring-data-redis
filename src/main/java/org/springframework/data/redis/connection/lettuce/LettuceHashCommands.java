@@ -16,12 +16,16 @@
 package org.springframework.data.redis.connection.lettuce;
 
 import io.lettuce.core.ExpireArgs;
+import io.lettuce.core.HGetExArgs;
+import io.lettuce.core.HSetExArgs;
 import io.lettuce.core.KeyValue;
 import io.lettuce.core.MapScanCursor;
 import io.lettuce.core.ScanArgs;
 import io.lettuce.core.api.async.RedisHashAsyncCommands;
 import io.lettuce.core.protocol.CommandArgs;
 
+import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -47,6 +51,7 @@ import org.springframework.util.ObjectUtils;
  * @author Christoph Strobl
  * @author Mark Paluch
  * @author Tihomir Mateev
+ * @author Nabil Fawwaz Elqayyim
  * @since 2.0
  */
 @NullUnmarked
@@ -78,6 +83,27 @@ class LettuceHashCommands implements RedisHashCommands {
 		return connection.invoke().just(RedisHashAsyncCommands::hsetnx, key, field, value);
 	}
 
+    @Override
+    public Long hSetEx(byte @NonNull [] key, byte @NonNull [] field, byte @NonNull [] value, long seconds) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(field, "Field must not be null");
+
+        HSetExArgs args = HSetExArgs.Builder.ex(Duration.ofSeconds(seconds));
+        Map<byte[], byte[]> map = Collections.singletonMap(field, value);
+        return connection.invoke().just(RedisHashAsyncCommands::hsetex, key, args, map);
+    }
+
+    @Override
+    public Long hSetEx(byte @NonNull [] key, Map<byte[], byte[]> map, long seconds) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(map, "Map must not be null");
+
+        HSetExArgs args = HSetExArgs.Builder.ex(Duration.ofSeconds(seconds));
+        return connection.invoke().just(RedisHashAsyncCommands::hsetex, key, args, map);
+    }
+
 	@Override
 	public Long hDel(byte @NonNull [] key, byte @NonNull [] @NonNull... fields) {
 
@@ -104,6 +130,55 @@ class LettuceHashCommands implements RedisHashCommands {
 
 		return connection.invoke().just(RedisHashAsyncCommands::hget, key, field);
 	}
+
+    @Override
+    public byte[] hGetEx(byte @NonNull [] key, byte @NonNull [] field, long seconds) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(field, "Field must not be null");
+
+        HGetExArgs args = HGetExArgs.Builder.ex(Duration.ofSeconds(seconds));
+        List<byte[]> values = connection.invoke()
+                .fromMany(RedisHashAsyncCommands::hgetex, key, args, field)
+                .toList(kv -> kv.hasValue() ? kv.getValue() : null);
+        return values.isEmpty() ? null : values.get(0);
+    }
+
+    @Override
+    public List<byte[]> hGetEx(byte @NonNull [] key, long seconds, byte @NonNull [] @NonNull ... fields) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(fields, "Fields must not be null");
+
+        HGetExArgs args = HGetExArgs.Builder.ex(Duration.ofSeconds(seconds));
+        return connection.invoke()
+                .fromMany(RedisHashAsyncCommands::hgetex, key, args, fields)
+                .toList(kv -> kv.hasValue() ? kv.getValue() : null);
+    }
+
+    @Override
+    public byte[] hGetDel(byte @NonNull [] key, byte @NonNull [] field) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(field, "Field must not be null");
+
+        List<byte[]> values = connection.invoke()
+                .fromMany(RedisHashAsyncCommands::hgetdel, key, field)
+                .toList(kv -> kv.hasValue() ? kv.getValue() : null);
+
+        return values.isEmpty() ? null : values.get(0);
+    }
+
+    @Override
+    public List<byte[]> hGetDel(byte @NonNull [] key, byte @NonNull [] @NonNull... fields) {
+
+        Assert.notNull(key, "Key must not be null");
+        Assert.notNull(fields, "Fields must not be null");
+
+        return connection.invoke()
+                .fromMany(RedisHashAsyncCommands::hgetdel, key, fields)
+                .toList(kv -> kv.hasValue() ? kv.getValue() : null);
+    }
 
 	@Override
 	public Map<byte[], byte[]> hGetAll(byte @NonNull [] key) {

@@ -67,6 +67,7 @@ import org.springframework.data.redis.domain.geo.GeoShape;
  * @author Dennis Neufeld
  * @author Shyngys Sapraliyev
  * @author Tihomir Mateev
+ * @author Nabil Fawwaz Elqayyim
  * @since 2.0
  */
 @Deprecated
@@ -1391,6 +1392,20 @@ public interface DefaultedRedisConnection extends RedisCommands, RedisCommandsPr
 		return hashCommands().hSetNX(key, field, value);
 	}
 
+    /** @deprecated in favor of {@link RedisConnection#hashCommands()}}. */
+    @Override
+    @Deprecated
+    default Long hSetEx(byte[] key, byte[] field, byte[] value, long seconds){
+        return hashCommands().hSetEx(key, field, value, seconds);
+    }
+
+    /** @deprecated in favor of {@link RedisConnection#hashCommands()}}. */
+    @Override
+    @Deprecated
+    default Long hSetEx(byte[] key, Map<byte[], byte[]> map, long seconds){
+        return hashCommands().hSetEx(key, map, seconds);
+    }
+
 	/** @deprecated in favor of {@link RedisConnection#hashCommands()}}. */
 	@Override
 	@Deprecated
@@ -1411,6 +1426,31 @@ public interface DefaultedRedisConnection extends RedisCommands, RedisCommandsPr
 	default byte[] hGet(byte[] key, byte[] field) {
 		return hashCommands().hGet(key, field);
 	}
+
+    /** @deprecated in favor of {@link RedisConnection#hashCommands()}}. */
+    @Override
+    @Deprecated
+    default  byte[] hGetEx(byte[] key, byte[] field, long seconds){
+        return hashCommands().hGetEx(key, field, seconds);
+    }
+
+    @Override
+    @Deprecated
+    default List<byte[]> hGetEx(byte[] key, long seconds, byte[]... fields){
+        return hashCommands().hGetEx(key, seconds, fields);
+    }
+
+    @Override
+    @Deprecated
+    default byte[] hGetDel(byte[] key, byte[] field) {
+        return hashCommands().hGetDel(key, field);
+    }
+
+    @Override
+    @Deprecated
+    default List<byte[]> hGetDel(byte[] key, byte[]... fields) {
+        return hashCommands().hGetDel(key, fields);
+    }
 
 	/** @deprecated in favor of {@link RedisConnection#hashCommands()}}. */
 	@Override

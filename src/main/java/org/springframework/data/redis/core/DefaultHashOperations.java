@@ -44,6 +44,7 @@ import org.springframework.util.Assert;
  * @author Christoph Strobl
  * @author Ninad Divadkar
  * @author Tihomir Mateev
+ * @author Nabil Fawwaz Elqayyim
  */
 @NullUnmarked
 class DefaultHashOperations<K, HK, HV> extends AbstractOperations<K, Object> implements HashOperations<K, HK, HV> {
@@ -195,6 +196,52 @@ class DefaultHashOperations<K, HK, HV> extends AbstractOperations<K, Object> imp
 		return deserializeHashValues(rawValues);
 	}
 
+    @Override
+    public HV getAndDelete(@NonNull K key, @NonNull HK hashKey) {
+        byte[] rawKey = rawKey(key);
+        byte[] rawHashKey = rawHashKey(hashKey);
+
+        byte[] rawValue = execute(connection -> connection.hashCommands().hGetDel(rawKey, rawHashKey));
+        return rawValue != null ? deserializeHashValue(rawValue) : null;
+    }
+
+    @Override
+    public List<HV> multiGetAndDelete(@NonNull K key, @NonNull Collection<@NonNull HK> hashKeys) {
+        if (hashKeys.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        byte[] rawKey = rawKey(key);
+        byte[][] rawHashKeys = rawHashKeys(hashKeys.toArray());
+
+        List<byte[]> rawValues = execute(connection -> connection.hashCommands().hGetDel(rawKey, rawHashKeys));
+        return deserializeHashValues(rawValues);
+    }
+
+    @Override
+    public @Nullable HV getAndExpire(@NonNull K key, @NonNull HK hashKey, long ttl) {
+
+        Assert.isTrue(ttl > 0, "TTL must be greater than zero");
+        byte[] rawKey = rawKey(key);
+        byte[] rawHashKey = rawHashKey(hashKey);
+
+        byte[] rawValue = execute(connection -> connection.hashCommands().hGetEx(rawKey, rawHashKey, ttl));
+        return rawValue != null ? deserializeHashValue(rawValue) : null;
+    }
+
+    @Override
+    public List<HV> multiGetAndExpire(@NonNull K key, long ttl, @NonNull Collection<@NonNull HK> hashKeys) {
+        if (hashKeys.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        byte[] rawKey = rawKey(key);
+        byte[][] rawHashKeys = rawHashKeys(hashKeys.toArray());
+
+        List<byte[]> rawValues = execute(connection -> connection.hashCommands().hGetEx(rawKey, ttl, rawHashKeys));
+        return deserializeHashValues(rawValues);
+    }
+
 	@Override
 	public void put(@NonNull K key, @NonNull HK hashKey, HV value) {
 
@@ -207,6 +254,44 @@ class DefaultHashOperations<K, HK, HV> extends AbstractOperations<K, Object> imp
 			return null;
 		});
 	}
+
+    @Override
+    public void put(@NonNull K key, @NonNull HK hashKey, HV value, long ttl, @NonNull TimeUnit timeUnit) {
+
+        Assert.isTrue(ttl > 0, "TTL must be greater than zero");
+        byte[] rawKey = rawKey(key);
+        byte[] rawHashKey = rawHashKey(hashKey);
+        byte[] rawHashValue = rawHashValue(value);
+        long seconds = timeUnit.toSeconds(ttl);
+
+        execute(connection -> {
+            connection.hashCommands().hSetEx(rawKey, rawHashKey, rawHashValue, seconds);
+            return null;
+        });
+    }
+
+    @Override
+    public void put(@NonNull K key, @NonNull Map<? extends @NonNull HK, ? extends HV> m, long ttl, @NonNull TimeUnit timeUnit) {
+
+        Assert.isTrue(ttl > 0, "TTL must be greater than zero");
+        if (m.isEmpty()) {
+            return;
+        }
+
+        byte[] rawKey = rawKey(key);
+
+        Map<byte[], byte[]> hashes = new LinkedHashMap<>(m.size());
+        for (Map.Entry<? extends HK, ? extends HV> entry : m.entrySet()) {
+            hashes.put(rawHashKey(entry.getKey()), rawHashValue(entry.getValue()));
+        }
+
+        long seconds = timeUnit.toSeconds(ttl);
+
+        execute(connection -> {
+            connection.hashCommands().hSetEx(rawKey, hashes, seconds);
+            return null;
+        });
+    }
 
 	@Override
 	public Boolean putIfAbsent(@NonNull K key, @NonNull HK hashKey, HV value) {
